@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questions as allQuestions, domains } from '@/data/questions';
-import { saveResult, saveUsedQuestionIds, getUsedQuestionIds } from '@/lib/storage';
+import { saveResult, saveUsedQuestionIds, getUsedQuestionIds, toggleBookmark, isBookmarked, getFrequentlyWrong, getBookmarks } from '@/lib/storage';
 import type { Question, QuizState, QuizResult } from '@/types';
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -23,12 +23,20 @@ function formatTime(seconds: number): string {
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+// Exam simulation domain distribution: 13 D1, 16 D2, 18 D3, 9 D4, 9 D5 = 65
+const EXAM_SIM_DISTRIBUTION: Record<number, number> = { 1: 13, 2: 16, 3: 18, 4: 9, 5: 9 };
+const EXAM_SIM_TIME = 85 * 60; // 85 minutes in seconds
+
 function QuizPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [quizState, setQuizState] = useState<QuizState | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [bookmarkedQuestions, setBookmarkedQuestions] = useState<Set<string>>(new Set());
+  const [isExamSim, setIsExamSim] = useState(false);
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
+  const [loadingAi, setLoadingAi] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const questionContainerRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +45,9 @@ function QuizPage() {
     const domainsParam = searchParams.get('domains');
     const countParam = searchParams.get('count');
     const modeParam = searchParams.get('mode');
+    const examSimParam = searchParams.get('exam-sim');
+    const topicsParam = searchParams.get('topics');
+    const bookmarksParam = searchParams.get('bookmarks');
 
     if (!domainsParam) {
       router.push('/');
@@ -44,22 +55,79 @@ function QuizPage() {
     }
 
     const selectedDomains = domainsParam.split(',').map(Number);
-    const count = countParam ? parseInt(countParam, 10) : 20;
+    let count = countParam ? parseInt(countParam, 10) : 20;
     const mode = modeParam === 'exam' ? 'exam' : 'practice';
+    const examSim = examSimParam === 'true';
+    const selectedTopics = topicsParam ? topicsParam.split(',') : [];
+    const useBookmarks = bookmarksParam === 'true';
 
-    const filtered = allQuestions.filter(q => selectedDomains.includes(q.domain));
+    setIsExamSim(examSim);
 
-    // Smart rotation: prioritize unseen questions
-    const usedIds = getUsedQuestionIds();
-    const unseen = filtered.filter(q => !usedIds.includes(q.id));
-    const seen = filtered.filter(q => usedIds.includes(q.id));
+    let filtered: Question[];
 
-    // Take from unseen first, then fill from seen (reshuffled)
-    let selected: Question[];
-    if (unseen.length >= count) {
-      selected = shuffleArray(unseen).slice(0, count);
+    if (useBookmarks) {
+      const bookmarkIds = getBookmarks();
+      filtered = allQuestions.filter(q => bookmarkIds.includes(q.id));
+      count = filtered.length;
     } else {
-      selected = [...shuffleArray(unseen), ...shuffleArray(seen).slice(0, count - unseen.length)];
+      filtered = allQuestions.filter(q => selectedDomains.includes(q.domain));
+    }
+
+    // Topic filtering
+    if (selectedTopics.length > 0) {
+      const topicFiltered = filtered.filter(q => q.topic && selectedTopics.includes(q.topic));
+      if (topicFiltered.length > 0) {
+        filtered = topicFiltered;
+      }
+    }
+
+    let selected: Question[];
+
+    if (examSim) {
+      // Exam simulation: distribute questions per domain
+      count = 65;
+      const byDomain: Record<number, Question[]> = {};
+      for (const q of filtered) {
+        if (!byDomain[q.domain]) byDomain[q.domain] = [];
+        byDomain[q.domain].push(q);
+      }
+
+      selected = [];
+      for (const [domainIdStr, needed] of Object.entries(EXAM_SIM_DISTRIBUTION)) {
+        const domainId = Number(domainIdStr);
+        const pool = byDomain[domainId] || [];
+        const shuffled = shuffleArray(pool);
+        selected.push(...shuffled.slice(0, needed));
+      }
+      selected = shuffleArray(selected);
+    } else {
+      // Smart rotation: prioritize unseen questions
+      const usedIds = getUsedQuestionIds();
+      const unseen = filtered.filter(q => !usedIds.includes(q.id));
+      const seen = filtered.filter(q => usedIds.includes(q.id));
+
+      // Spaced repetition: include 30% from frequently wrong
+      const freqWrong = getFrequentlyWrong();
+      const wrongIds = Object.keys(freqWrong).sort((a, b) => freqWrong[b] - freqWrong[a]);
+      const wrongQuestions = wrongIds
+        .map(id => filtered.find(q => q.id === id))
+        .filter((q): q is Question => q !== undefined);
+      const wrongCount = Math.min(Math.floor(count * 0.3), wrongQuestions.length);
+      const wrongSelected = wrongQuestions.slice(0, wrongCount);
+      const wrongSelectedIds = new Set(wrongSelected.map(q => q.id));
+
+      const remainingCount = count - wrongCount;
+      const remainingUnseen = unseen.filter(q => !wrongSelectedIds.has(q.id));
+      const remainingSeen = seen.filter(q => !wrongSelectedIds.has(q.id));
+
+      let otherSelected: Question[];
+      if (remainingUnseen.length >= remainingCount) {
+        otherSelected = shuffleArray(remainingUnseen).slice(0, remainingCount);
+      } else {
+        otherSelected = [...shuffleArray(remainingUnseen), ...shuffleArray(remainingSeen).slice(0, remainingCount - remainingUnseen.length)];
+      }
+
+      selected = shuffleArray([...wrongSelected, ...otherSelected]);
     }
 
     if (selected.length === 0) {
@@ -69,6 +137,13 @@ function QuizPage() {
 
     // Save used question IDs
     saveUsedQuestionIds(selected.map(q => q.id));
+
+    // Init bookmarks
+    const initialBookmarks = new Set<string>();
+    for (const q of selected) {
+      if (isBookmarked(q.id)) initialBookmarks.add(q.id);
+    }
+    setBookmarkedQuestions(initialBookmarks);
 
     setQuizState({
       currentIndex: 0,
@@ -94,6 +169,14 @@ function QuizPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [quizState?.startTime]);
+
+  // Auto-finish for exam sim when time runs out
+  useEffect(() => {
+    if (isExamSim && elapsed >= EXAM_SIM_TIME && quizState) {
+      finishQuiz();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elapsed, isExamSim]);
 
   const scrollToTop = useCallback(() => {
     questionContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -148,6 +231,50 @@ function QuizPage() {
     scrollToTop();
   }, [quizState, scrollToTop]);
 
+  const handleToggleBookmark = useCallback((questionId: string) => {
+    const newState = toggleBookmark(questionId);
+    setBookmarkedQuestions(prev => {
+      const next = new Set(prev);
+      if (newState) next.add(questionId);
+      else next.delete(questionId);
+      return next;
+    });
+  }, []);
+
+  const requestAiExplanation = useCallback(async (question: Question) => {
+    if (aiExplanations[question.id] || loadingAi === question.id) return;
+
+    const userAnswerIds = quizState?.answers[question.id] ?? [];
+    const selectedOption = question.options.find(o => userAnswerIds.includes(o.id));
+    const correctOption = question.options.find(o => question.correctAnswers.includes(o.id));
+
+    if (!selectedOption || !correctOption) return;
+
+    setLoadingAi(question.id);
+    try {
+      const res = await fetch('/api/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.question,
+          selectedAnswer: selectedOption.text,
+          correctAnswer: correctOption.text,
+          explanation: question.explanation,
+        }),
+      });
+      const data = await res.json();
+      if (data.explanation) {
+        setAiExplanations(prev => ({ ...prev, [question.id]: data.explanation }));
+      } else {
+        setAiExplanations(prev => ({ ...prev, [question.id]: 'No se pudo obtener la explicacion. Verifica que ANTHROPIC_API_KEY este configurada.' }));
+      }
+    } catch {
+      setAiExplanations(prev => ({ ...prev, [question.id]: 'Error al conectar con el servidor.' }));
+    } finally {
+      setLoadingAi(null);
+    }
+  }, [quizState, aiExplanations, loadingAi]);
+
   const finishQuiz = useCallback(() => {
     if (!quizState) return;
     if (timerRef.current) clearInterval(timerRef.current);
@@ -185,8 +312,12 @@ function QuizPage() {
     };
 
     saveResult(result);
-    router.push(`/results?id=${result.id}`);
-  }, [quizState, router]);
+
+    const params = new URLSearchParams();
+    params.set('id', result.id);
+    if (isExamSim) params.set('exam-sim', 'true');
+    router.push(`/results?${params.toString()}`);
+  }, [quizState, router, isExamSim]);
 
   if (!quizState || !currentQuestion) {
     return (
@@ -203,6 +334,8 @@ function QuizPage() {
   const domain = domains.find(d => d.id === currentQuestion.domain);
   const progress = ((quizState.currentIndex + 1) / quizState.questions.length) * 100;
   const answeredCount = Object.keys(quizState.answers).filter(k => (quizState.answers[k]?.length ?? 0) > 0).length;
+  const isCurrentBookmarked = bookmarkedQuestions.has(currentQuestion.id);
+  const remainingTime = isExamSim ? Math.max(0, EXAM_SIM_TIME - elapsed) : null;
 
   return (
     <div className="min-h-dvh bg-background flex flex-col">
@@ -220,10 +353,32 @@ function QuizPage() {
               Salir
             </button>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-text-secondary font-mono">{formatTime(elapsed)}</span>
+              {isExamSim && remainingTime !== null ? (
+                <span className={`text-xs font-mono font-bold ${remainingTime < 300 ? 'text-error' : remainingTime < 600 ? 'text-accent' : 'text-text-secondary'}`}>
+                  {formatTime(remainingTime)}
+                </span>
+              ) : (
+                <span className="text-xs text-text-secondary font-mono">{formatTime(elapsed)}</span>
+              )}
               <span className="text-xs text-text-secondary">
                 {quizState.currentIndex + 1}/{quizState.questions.length}
               </span>
+              {/* Bookmark button */}
+              <button
+                onClick={() => handleToggleBookmark(currentQuestion.id)}
+                className="p-1 transition-colors"
+                title={isCurrentBookmarked ? 'Quitar marcador' : 'Marcar pregunta'}
+              >
+                <svg
+                  className={`w-5 h-5 ${isCurrentBookmarked ? 'text-accent fill-accent' : 'text-text-secondary'}`}
+                  fill={isCurrentBookmarked ? 'currentColor' : 'none'}
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </button>
             </div>
           </div>
           {/* Progress bar */}
@@ -233,6 +388,11 @@ function QuizPage() {
               style={{ width: `${progress}%` }}
             />
           </div>
+          {isExamSim && (
+            <div className="text-center mt-1">
+              <span className="text-[10px] text-text-secondary">Simulacro de Examen - 65 preguntas, 85 minutos</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -335,9 +495,9 @@ function QuizPage() {
           </button>
         )}
 
-        {/* Explanation (Practice Mode) */}
+        {/* Explanation (Practice Mode) - Show ALL option explanations */}
         {isSubmitted && quizState.config.mode === 'practice' && (
-          <div className="animate-fade-in">
+          <div className="animate-fade-in space-y-3">
             <div className={`border rounded-xl p-4 sm:p-5 ${
               isCorrect
                 ? 'bg-success/5 border-success/30'
@@ -363,23 +523,61 @@ function QuizPage() {
               <p className="text-sm text-text-primary leading-relaxed mb-3">
                 {currentQuestion.explanation}
               </p>
-              {/* Wrong answer explanations */}
-              {!isCorrect && currentAnswers
-                .filter(a => !currentQuestion.correctAnswers.includes(a))
-                .map(wrongId => {
-                  const wrongOption = currentQuestion.options.find(o => o.id === wrongId);
-                  const wrongExplanation = currentQuestion.incorrectExplanations[wrongId];
-                  if (!wrongOption || !wrongExplanation) return null;
+              {/* Show ALL wrong option explanations */}
+              {currentQuestion.options
+                .filter(o => !currentQuestion.correctAnswers.includes(o.id))
+                .map(wrongOption => {
+                  const wrongExplanation = currentQuestion.incorrectExplanations[wrongOption.id];
+                  if (!wrongExplanation) return null;
+                  const wasSelected = currentAnswers.includes(wrongOption.id);
                   return (
-                    <div key={wrongId} className="mt-2 p-3 bg-background/50 rounded-lg">
+                    <div key={wrongOption.id} className={`mt-2 p-3 rounded-lg ${wasSelected ? 'bg-error/10 border border-error/20' : 'bg-background/50'}`}>
                       <p className="text-xs text-text-secondary mb-1">
-                        Por que <span className="text-error">&quot;{wrongOption.text.substring(0, 60)}...&quot;</span> es incorrecta:
+                        {wasSelected && <span className="text-error font-medium">(Tu respuesta) </span>}
+                        Por que &quot;{wrongOption.text.substring(0, 80)}{wrongOption.text.length > 80 ? '...' : ''}&quot; es incorrecta:
                       </p>
                       <p className="text-sm text-text-secondary leading-relaxed">{wrongExplanation}</p>
                     </div>
                   );
                 })}
             </div>
+
+            {/* AI Explanation Button - Only for wrong answers */}
+            {!isCorrect && (
+              <div>
+                {aiExplanations[currentQuestion.id] ? (
+                  <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">&#129302;</span>
+                      <span className="text-sm font-semibold text-purple-400">Explicacion con IA</span>
+                    </div>
+                    <p className="text-sm text-text-primary leading-relaxed whitespace-pre-line">
+                      {aiExplanations[currentQuestion.id]}
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => requestAiExplanation(currentQuestion)}
+                    disabled={loadingAi === currentQuestion.id}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium border border-purple-500/30 bg-purple-500/5 text-purple-400 hover:bg-purple-500/10 transition-all duration-200 flex items-center justify-center gap-2 min-h-10"
+                  >
+                    {loadingAi === currentQuestion.id ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Generando explicacion...
+                      </>
+                    ) : (
+                      <>
+                        <span>&#129302;</span> Explicame mas
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -422,6 +620,7 @@ function QuizPage() {
             const hasAnswer = (quizState.answers[q.id]?.length ?? 0) > 0;
             const wasSubmitted = quizState.submitted[q.id] ?? false;
             const isCurrent = idx === quizState.currentIndex;
+            const isQBookmarked = bookmarkedQuestions.has(q.id);
 
             let dotClass = 'bg-card-border';
             if (isCurrent) {
@@ -438,8 +637,8 @@ function QuizPage() {
               <button
                 key={q.id}
                 onClick={() => goToQuestion(idx)}
-                className={`w-6 h-6 rounded-full text-[10px] font-medium transition-all duration-200 ${dotClass} flex items-center justify-center text-white/80 hover:scale-110`}
-                title={`Pregunta ${idx + 1}`}
+                className={`w-6 h-6 rounded-full text-[10px] font-medium transition-all duration-200 ${dotClass} flex items-center justify-center text-white/80 hover:scale-110 ${isQBookmarked ? 'ring-1 ring-accent/60' : ''}`}
+                title={`Pregunta ${idx + 1}${isQBookmarked ? ' (marcada)' : ''}`}
               >
                 {idx + 1}
               </button>

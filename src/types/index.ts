@@ -1,6 +1,7 @@
 export interface Question {
   id: string;
   domain: number; // 1-5
+  topic: string;
   question: string;
   options: Option[];
   correctAnswers: string[]; // array of option IDs
@@ -62,4 +63,23 @@ export interface DomainAnalysis {
   percentage: number;
   status: 'strong' | 'medium' | 'weak';
   resources: TopicResource[];
+}
+
+export interface TopicDefinition {
+  id: string;
+  name: string;
+  domainId: number;
+}
+
+export interface DailyStats {
+  date: string; // YYYY-MM-DD
+  questionsAnswered: number;
+  correctAnswers: number;
+  timeSpent: number;
+}
+
+export interface StudyStreak {
+  currentStreak: number;
+  longestStreak: number;
+  lastStudyDate: string;
 }

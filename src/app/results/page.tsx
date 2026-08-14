@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questions as allQuestions, domains } from '@/data/questions';
-import { getResults } from '@/lib/storage';
+import { topics } from '@/data/topics';
+import { getResults, recordDailyStats, updateStreak, recordWrongAnswers } from '@/lib/storage';
 import { domainResources } from '@/data/resources';
 import type { QuizResult, Question } from '@/types';
 
@@ -13,13 +14,17 @@ function ResultsPage() {
   const [result, setResult] = useState<QuizResult | null>(null);
   const [showOnlyErrors, setShowOnlyErrors] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [isExamSim, setIsExamSim] = useState(false);
+  const statsRecorded = useRef(false);
 
   useEffect(() => {
     const resultId = searchParams.get('id');
+    const examSimParam = searchParams.get('exam-sim');
     if (!resultId) {
       router.push('/');
       return;
     }
+    setIsExamSim(examSimParam === 'true');
     const results = getResults();
     const found = results.find(r => r.id === resultId);
     if (!found) {
@@ -27,6 +32,29 @@ function ResultsPage() {
       return;
     }
     setResult(found);
+
+    // Record stats once
+    if (!statsRecorded.current) {
+      statsRecorded.current = true;
+      recordDailyStats(found.total, found.score, found.timeSpent);
+      updateStreak();
+
+      // Record wrong answers for spaced repetition
+      const wrongIds: string[] = [];
+      for (const [qId, userAnswers] of Object.entries(found.answers)) {
+        const question = allQuestions.find(q => q.id === qId);
+        if (!question) continue;
+        const isCorrect =
+          userAnswers.length === question.correctAnswers.length &&
+          question.correctAnswers.every(a => userAnswers.includes(a));
+        if (!isCorrect) {
+          wrongIds.push(qId);
+        }
+      }
+      if (wrongIds.length > 0) {
+        recordWrongAnswers(wrongIds);
+      }
+    }
   }, [searchParams, router]);
 
   const questionMap = useMemo(() => {
@@ -60,6 +88,9 @@ function ResultsPage() {
   const pct = Math.round((result.score / result.total) * 100);
   const mins = Math.floor(result.timeSpent / 60);
   const secs = result.timeSpent % 60;
+
+  // AWS-style score (100-1000 scale, 700 = pass)
+  const awsScore = Math.round(100 + (pct / 100) * 900);
 
   const scoreColor = pct >= 80 ? 'text-success' : pct >= 60 ? 'text-accent' : 'text-error';
   const scoreBg = pct >= 80 ? 'from-success/20 to-success/5' : pct >= 60 ? 'from-accent/20 to-accent/5' : 'from-error/20 to-error/5';
@@ -96,6 +127,15 @@ function ResultsPage() {
     ? questionResults.filter(r => !r.isCorrect)
     : questionResults;
 
+  // Topic-level breakdown
+  const topicStats: Record<string, { correct: number; total: number }> = {};
+  for (const { question, isCorrect } of questionResults) {
+    const topicId = question.topic || 'sin-tema';
+    if (!topicStats[topicId]) topicStats[topicId] = { correct: 0, total: 0 };
+    topicStats[topicId].total += 1;
+    if (isCorrect) topicStats[topicId].correct += 1;
+  }
+
   const getDomainBarColor = (domainId: number) => {
     const colors: Record<number, string> = {
       1: 'bg-blue-500',
@@ -121,7 +161,9 @@ function ResultsPage() {
             </svg>
             Inicio
           </button>
-          <h1 className="text-sm font-semibold text-text-primary">Resultados</h1>
+          <h1 className="text-sm font-semibold text-text-primary">
+            {isExamSim ? 'Resultado del Simulacro' : 'Resultados'}
+          </h1>
           <div className="w-12" />
         </div>
       </header>
@@ -129,7 +171,16 @@ function ResultsPage() {
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Score Card */}
         <section className={`bg-gradient-to-br ${scoreBg} border ${scoreBorderColor} rounded-xl p-6 text-center animate-scale-in`}>
-          <div className={`text-5xl sm:text-6xl font-bold ${scoreColor} mb-1`}>
+          {isExamSim && (
+            <div className="mb-3">
+              <div className="text-sm text-text-secondary mb-1">Puntuacion AWS (100-1000)</div>
+              <div className={`text-4xl sm:text-5xl font-bold ${awsScore >= 700 ? 'text-success' : 'text-error'}`}>
+                {awsScore}
+              </div>
+              <div className="text-xs text-text-secondary mt-1">Puntuacion minima para aprobar: 700</div>
+            </div>
+          )}
+          <div className={`${isExamSim ? 'text-3xl' : 'text-5xl sm:text-6xl'} font-bold ${scoreColor} mb-1`}>
             {pct}%
           </div>
           <p className={`text-sm font-medium ${scoreColor} mb-3`}>{scoreLabel}</p>
@@ -138,23 +189,23 @@ function ResultsPage() {
             <span className="w-px h-4 bg-card-border" />
             <span>{mins}:{secs.toString().padStart(2, '0')}</span>
             <span className="w-px h-4 bg-card-border" />
-            <span>{result.config.mode === 'practice' ? 'Practica' : 'Examen'}</span>
+            <span>{isExamSim ? 'Simulacro' : result.config.mode === 'practice' ? 'Practica' : 'Examen'}</span>
           </div>
           {/* Pass/fail indicator */}
           <div className="mt-4">
-            {pct >= 70 ? (
+            {(isExamSim ? awsScore >= 700 : pct >= 70) ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-success bg-success/10 px-3 py-1 rounded-full">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                Aprobado (minimo 70%)
+                {isExamSim ? `Aprobado (${awsScore}/1000)` : 'Aprobado (minimo 70%)'}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-error bg-error/10 px-3 py-1 rounded-full">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                No aprobado (minimo 70%)
+                {isExamSim ? `No aprobado (${awsScore}/1000, minimo 700)` : 'No aprobado (minimo 70%)'}
               </span>
             )}
           </div>
@@ -194,6 +245,42 @@ function ResultsPage() {
           </div>
         </section>
 
+        {/* Topic Breakdown */}
+        {Object.keys(topicStats).length > 0 && (
+          <section className="bg-card border border-card-border rounded-xl p-4 sm:p-6">
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Desglose por Tema</h3>
+            <div className="space-y-2">
+              {Object.entries(topicStats)
+                .sort(([, a], [, b]) => {
+                  const pctA = a.total > 0 ? a.correct / a.total : 1;
+                  const pctB = b.total > 0 ? b.correct / b.total : 1;
+                  return pctA - pctB;
+                })
+                .map(([topicId, stats]) => {
+                  const topic = topics.find(t => t.id === topicId);
+                  const topicPct = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+                  const barColor = topicPct >= 80 ? 'bg-success' : topicPct >= 50 ? 'bg-accent' : 'bg-error';
+                  return (
+                    <div key={topicId}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-text-primary truncate">{topic?.name || topicId}</span>
+                        <span className="text-xs font-medium text-text-primary ml-2 whitespace-nowrap">
+                          {stats.correct}/{stats.total} ({topicPct}%)
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-background rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${barColor} rounded-full transition-all duration-700`}
+                          style={{ width: `${topicPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </section>
+        )}
+
         {/* Gap Analysis */}
         <section className="bg-card border border-card-border rounded-xl p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">
@@ -207,7 +294,7 @@ function ResultsPage() {
             .sort(([, a], [, b]) => {
               const pctA = a.total > 0 ? a.correct / a.total : 1;
               const pctB = b.total > 0 ? b.correct / b.total : 1;
-              return pctA - pctB; // weakest first
+              return pctA - pctB;
             })
             .map(([domainIdStr, score]) => {
               const domainId = Number(domainIdStr);
@@ -258,7 +345,7 @@ function ResultsPage() {
                   )}
 
                   {domainPct >= 80 && (
-                    <p className="text-xs text-success ml-6">{'✅'} Dominio bien cubierto. Sigue practicando para mantener el nivel.</p>
+                    <p className="text-xs text-success ml-6">Dominio bien cubierto. Sigue practicando para mantener el nivel.</p>
                   )}
                 </div>
               );
@@ -283,7 +370,7 @@ function ResultsPage() {
             }}
             className="flex-1 py-3 rounded-xl font-semibold text-sm border border-accent/50 bg-accent/10 text-accent hover:bg-accent/20 transition-all duration-200 min-h-12 active:scale-[0.98]"
           >
-            {'\u{1F504}'} Nuevo Quiz (Diferentes)
+            Nuevo Quiz
           </button>
           <button
             onClick={() => setShowOnlyErrors(!showOnlyErrors)}
@@ -304,9 +391,10 @@ function ResultsPage() {
             {showOnlyErrors ? 'Preguntas Incorrectas' : 'Todas las Preguntas'} ({displayedQuestions.length})
           </h3>
           <div className="space-y-2">
-            {displayedQuestions.map(({ question, userAnswers, isCorrect }, idx) => {
+            {displayedQuestions.map(({ question, userAnswers, isCorrect }) => {
               const isExpanded = expandedQuestions.has(question.id);
               const domain = domains.find(d => d.id === question.domain);
+              const topic = topics.find(t => t.id === question.topic);
 
               return (
                 <div key={question.id} className="bg-card border border-card-border rounded-xl overflow-hidden">
@@ -330,11 +418,18 @@ function ResultsPage() {
                       <p className="text-sm text-text-primary line-clamp-2 leading-relaxed">
                         {question.question}
                       </p>
-                      {domain && (
-                        <span className="text-xs text-text-secondary mt-1 inline-block">
-                          {domain.icon} {domain.name}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2 mt-1">
+                        {domain && (
+                          <span className="text-xs text-text-secondary">
+                            {domain.icon} {domain.name}
+                          </span>
+                        )}
+                        {topic && (
+                          <span className="text-[10px] text-text-secondary bg-card-border px-1.5 py-0.5 rounded">
+                            {topic.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <svg
                       className={`w-4 h-4 text-text-secondary shrink-0 mt-1 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
@@ -391,33 +486,22 @@ function ResultsPage() {
                                   )}
                                 </div>
                               </div>
+                              {/* Show explanation for EVERY option */}
+                              {!isCorrectOption && question.incorrectExplanations[option.id] && (
+                                <div className="mt-1 ml-6 text-xs text-text-secondary leading-relaxed">
+                                  {question.incorrectExplanations[option.id]}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* Explanation */}
+                      {/* Main explanation */}
                       <div className={`p-3 rounded-lg ${isCorrect ? 'bg-success/5 border border-success/20' : 'bg-error/5 border border-error/20'}`}>
                         <p className="text-xs font-medium text-text-secondary mb-1">Explicacion:</p>
                         <p className="text-sm text-text-primary leading-relaxed">{question.explanation}</p>
                       </div>
-
-                      {/* Wrong answer explanations */}
-                      {!isCorrect && userAnswers
-                        .filter(a => !question.correctAnswers.includes(a))
-                        .map(wrongId => {
-                          const wrongOption = question.options.find(o => o.id === wrongId);
-                          const wrongExplanation = question.incorrectExplanations[wrongId];
-                          if (!wrongOption || !wrongExplanation) return null;
-                          return (
-                            <div key={wrongId} className="p-3 bg-background/50 rounded-lg">
-                              <p className="text-xs text-text-secondary mb-1">
-                                Por que &quot;{wrongOption.text.substring(0, 80)}{wrongOption.text.length > 80 ? '...' : ''}&quot; es incorrecta:
-                              </p>
-                              <p className="text-sm text-text-secondary leading-relaxed">{wrongExplanation}</p>
-                            </div>
-                          );
-                        })}
                     </div>
                   )}
                 </div>

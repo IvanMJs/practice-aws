@@ -2,23 +2,35 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { domains } from '@/data/questions';
-import { getResults, getDomainStats, clearResults } from '@/lib/storage';
-import type { QuizResult } from '@/types';
+import { topics } from '@/data/topics';
+import { getResults, getDomainStats, clearResults, getStreak, getBookmarks, getDailyStatsHistory } from '@/lib/storage';
+import type { QuizResult, StudyStreak } from '@/types';
 
 function HomePage() {
   const router = useRouter();
   const [selectedDomains, setSelectedDomains] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState<number>(20);
   const [mode, setMode] = useState<'practice' | 'exam'>('practice');
   const [showConfig, setShowConfig] = useState(false);
   const [recentResults, setRecentResults] = useState<QuizResult[]>([]);
   const [domainStats, setDomainStats] = useState<Record<number, { correct: number; total: number; attempts: number }>>({});
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [streak, setStreak] = useState<StudyStreak>({ currentStreak: 0, longestStreak: 0, lastStudyDate: '' });
+  const [bookmarkCount, setBookmarkCount] = useState(0);
+  const [totalTimeStudied, setTotalTimeStudied] = useState(0);
 
   useEffect(() => {
-    setRecentResults(getResults().slice(0, 5));
+    const results = getResults();
+    setRecentResults(results.slice(0, 5));
     setDomainStats(getDomainStats());
+    setStreak(getStreak());
+    setBookmarkCount(getBookmarks().length);
+    const dailyStats = getDailyStatsHistory();
+    const totalTime = dailyStats.reduce((sum, d) => sum + d.timeSpent, 0);
+    setTotalTimeStudied(totalTime);
   }, []);
 
   const toggleDomain = useCallback((domainId: number) => {
@@ -31,16 +43,40 @@ function HomePage() {
     });
   }, []);
 
+  const toggleTopic = useCallback((topicId: string) => {
+    setSelectedTopics(prev => {
+      if (prev.includes(topicId)) {
+        return prev.filter(t => t !== topicId);
+      }
+      return [...prev, topicId];
+    });
+  }, []);
+
+  const availableTopics = topics.filter(t => selectedDomains.includes(t.domainId));
+
   const startQuiz = useCallback(() => {
     const params = new URLSearchParams();
     params.set('domains', selectedDomains.join(','));
     params.set('count', questionCount.toString());
     params.set('mode', mode);
+    if (selectedTopics.length > 0) {
+      params.set('topics', selectedTopics.join(','));
+    }
     router.push(`/quiz?${params.toString()}`);
-  }, [selectedDomains, questionCount, mode, router]);
+  }, [selectedDomains, questionCount, mode, selectedTopics, router]);
 
-  const totalCorrect = recentResults.reduce((s, r) => s + r.score, 0);
-  const totalQuestions = recentResults.reduce((s, r) => s + r.total, 0);
+  const startExamSimulation = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set('domains', '1,2,3,4,5');
+    params.set('count', '65');
+    params.set('mode', 'exam');
+    params.set('exam-sim', 'true');
+    router.push(`/quiz?${params.toString()}`);
+  }, [router]);
+
+  const allResults = getResults();
+  const totalCorrect = allResults.reduce((s, r) => s + r.score, 0);
+  const totalQuestions = allResults.reduce((s, r) => s + r.total, 0);
   const overallPct = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
   const handleClearResults = useCallback(() => {
@@ -83,34 +119,58 @@ function HomePage() {
     return colors[domainId] ?? 'bg-gray-500';
   };
 
+  const formatStudyTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+  };
+
   return (
     <div className="min-h-dvh bg-background">
       {/* Header */}
       <header className="border-b border-card-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">&#9729;&#65039;</span>
-            <div>
-              <h1 className="text-lg font-bold text-text-primary sm:text-xl">AWS AIF-C01 Practice</h1>
-              <p className="text-xs text-text-secondary sm:text-sm">Certified AI Practitioner</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">&#9729;&#65039;</span>
+              <div>
+                <h1 className="text-lg font-bold text-text-primary sm:text-xl">AWS AIF-C01 Practice</h1>
+                <p className="text-xs text-text-secondary sm:text-sm">Certified AI Practitioner</p>
+              </div>
+            </div>
+            {/* Desktop nav links */}
+            <div className="hidden sm:flex items-center gap-4">
+              <Link href="/progress" className="text-sm text-text-secondary hover:text-accent transition-colors">Progreso</Link>
+              <Link href="/study" className="text-sm text-text-secondary hover:text-accent transition-colors">Estudiar</Link>
+              <Link href="/bookmarks" className="text-sm text-text-secondary hover:text-accent transition-colors relative">
+                Marcados
+                {bookmarkCount > 0 && (
+                  <span className="absolute -top-2 -right-4 bg-accent text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {bookmarkCount}
+                  </span>
+                )}
+              </Link>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Hero */}
-        <section className="text-center space-y-2 py-4">
-          <h2 className="text-xl font-bold text-text-primary sm:text-2xl">
-            Practica para AWS Certified AI Practitioner
-          </h2>
-          <p className="text-text-secondary text-sm sm:text-base max-w-2xl mx-auto">
-            Prepara tu examen AIF-C01 con preguntas de practica organizadas por dominio.
-            Modo practica con retroalimentacion inmediata o modo examen simulado.
-          </p>
-        </section>
+        {/* Streak Banner */}
+        {streak.currentStreak > 0 && (
+          <div className="bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/30 rounded-xl p-4 flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">&#128293;</span>
+              <div>
+                <div className="text-lg font-bold text-accent">Racha: {streak.currentStreak} {streak.currentStreak === 1 ? 'dia' : 'dias'}</div>
+                <div className="text-xs text-text-secondary">Record: {streak.longestStreak} dias</div>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* Overall Stats */}
+        {/* Quick Stats Bar */}
         {totalQuestions > 0 && (
           <section className="bg-card border border-card-border rounded-xl p-4 sm:p-6 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
@@ -131,7 +191,7 @@ function HomePage() {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-4 text-center">
+            <div className="grid grid-cols-4 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-accent">{overallPct}%</div>
                 <div className="text-xs text-text-secondary">Precision</div>
@@ -141,12 +201,50 @@ function HomePage() {
                 <div className="text-xs text-text-secondary">Preguntas</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-text-primary">{recentResults.length}</div>
+                <div className="text-2xl font-bold text-text-primary">{allResults.length}</div>
                 <div className="text-xs text-text-secondary">Quizzes</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-text-primary">{formatStudyTime(totalTimeStudied)}</div>
+                <div className="text-xs text-text-secondary">Estudiado</div>
               </div>
             </div>
           </section>
         )}
+
+        {/* Hero */}
+        <section className="text-center space-y-2 py-4">
+          <h2 className="text-xl font-bold text-text-primary sm:text-2xl">
+            Practica para AWS Certified AI Practitioner
+          </h2>
+          <p className="text-text-secondary text-sm sm:text-base max-w-2xl mx-auto">
+            Prepara tu examen AIF-C01 con preguntas de practica organizadas por dominio.
+            Modo practica con retroalimentacion inmediata o modo examen simulado.
+          </p>
+        </section>
+
+        {/* Action Buttons Row */}
+        <section className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-black font-bold px-8 py-3 rounded-xl text-base transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-accent/25 active:scale-95 min-h-12"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {showConfig ? 'Ocultar Configuracion' : 'Iniciar Quiz'}
+          </button>
+          <button
+            onClick={startExamSimulation}
+            className="flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold px-6 py-3 rounded-xl text-base transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 min-h-12"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Simulacro de Examen
+          </button>
+        </section>
 
         {/* Domain Cards */}
         <section>
@@ -168,7 +266,6 @@ function HomePage() {
                   </div>
                   <h4 className="font-semibold text-text-primary text-sm mb-1">{domain.name}</h4>
                   <p className="text-xs text-text-secondary mb-3 line-clamp-2">{domain.description}</p>
-                  {/* Progress bar */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span className="text-text-secondary">
@@ -189,20 +286,6 @@ function HomePage() {
               );
             })}
           </div>
-        </section>
-
-        {/* Start Button */}
-        <section className="text-center">
-          <button
-            onClick={() => setShowConfig(!showConfig)}
-            className="inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-black font-bold px-8 py-3 rounded-xl text-base transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-accent/25 active:scale-95 min-h-12"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {showConfig ? 'Ocultar Configuracion' : 'Iniciar Quiz'}
-          </button>
         </section>
 
         {/* Config Section */}
@@ -237,11 +320,46 @@ function HomePage() {
               </div>
             </div>
 
+            {/* Topic Selection */}
+            {availableTopics.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-2">
+                  Temas (opcional - deja vacio para todos)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {selectedDomains.map(domainId => {
+                    const domainTopics = availableTopics.filter(t => t.domainId === domainId);
+                    const domain = domains.find(d => d.id === domainId);
+                    if (domainTopics.length === 0) return null;
+                    return domainTopics.map(topic => (
+                      <label
+                        key={topic.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all duration-200 text-xs ${
+                          selectedTopics.includes(topic.id)
+                            ? 'border-accent/50 bg-accent/10'
+                            : 'border-card-border bg-background/50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTopics.includes(topic.id)}
+                          onChange={() => toggleTopic(topic.id)}
+                          className="w-3 h-3 rounded accent-accent"
+                        />
+                        <span className="text-text-secondary">{domain?.icon}</span>
+                        <span className="text-text-primary">{topic.name}</span>
+                      </label>
+                    ));
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Question Count */}
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">Numero de preguntas</label>
               <div className="flex flex-wrap gap-2">
-                {[20, 40, 60].map(count => (
+                {[10, 20, 40, 60].map(count => (
                   <button
                     key={count}
                     onClick={() => setQuestionCount(count)}
