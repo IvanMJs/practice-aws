@@ -152,6 +152,12 @@ function QuizPage() {
     // Save used question IDs
     saveUsedQuestionIds(selected.map(q => q.id));
 
+    // Shuffle options within each question so correct answers aren't concentrated in A/B
+    const shuffledQuestions = selected.map(q => ({
+      ...q,
+      options: shuffleArray(q.options),
+    }));
+
     // Init bookmarks
     const initialBookmarks = new Set<string>();
     for (const q of selected) {
@@ -161,7 +167,7 @@ function QuizPage() {
 
     setQuizState({
       currentIndex: 0,
-      questions: selected,
+      questions: shuffledQuestions,
       answers: {},
       submitted: {},
       startTime: Date.now(),
