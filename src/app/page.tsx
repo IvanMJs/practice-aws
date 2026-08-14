@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { domains } from '@/data/questions';
@@ -87,6 +87,63 @@ function HomePage() {
     setDomainStats({});
     setShowClearConfirm(false);
   }, []);
+
+  // Readiness Score Calculation
+  const readinessData = useMemo(() => {
+    // 1. Domain coverage (20 pts): attempted questions from all 5 domains
+    const domainsAttempted = [1, 2, 3, 4, 5].filter(d => domainStats[d] && domainStats[d].total > 0);
+    const domainCoverageScore = Math.round((domainsAttempted.length / 5) * 20);
+
+    // 2. Accuracy (30 pts): overall accuracy scaled
+    const accuracyScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 30) : 0;
+
+    // 3. Volume (20 pts): total questions answered, max at 200+
+    const volumeScore = Math.min(20, Math.round((totalQuestions / 200) * 20));
+
+    // 4. Consistency (15 pts): quizzes completed, max at 10+
+    const consistencyScore = Math.min(15, Math.round((allResults.length / 10) * 15));
+
+    // 5. Simulations (15 pts): at least 2 exam sims with 70%+
+    const examSims = allResults.filter(r =>
+      r.config.mode === 'exam' &&
+      r.config.questionCount === 65 &&
+      r.config.domains.length === 5
+    );
+    const passedSims = examSims.filter(r => (r.score / r.total) >= 0.7);
+    const simScore = Math.min(15, Math.round((Math.min(passedSims.length, 2) / 2) * 15));
+
+    const score = domainCoverageScore + accuracyScore + volumeScore + consistencyScore + simScore;
+
+    const checklist = [
+      {
+        label: 'Cobertura de dominios',
+        met: domainsAttempted.length === 5,
+        detail: `${domainsAttempted.length}/5 dominios`,
+      },
+      {
+        label: 'Precision general',
+        met: overallPct >= 70,
+        detail: `${overallPct}% (objetivo: 70%)`,
+      },
+      {
+        label: 'Volumen de practica',
+        met: totalQuestions >= 200,
+        detail: `${totalQuestions}/200 preguntas`,
+      },
+      {
+        label: 'Consistencia',
+        met: allResults.length >= 10,
+        detail: `${allResults.length}/10 quizzes`,
+      },
+      {
+        label: 'Simulacros aprobados',
+        met: passedSims.length >= 2,
+        detail: `${passedSims.length}/2 con 70%+`,
+      },
+    ];
+
+    return { score, checklist };
+  }, [allResults, domainStats, totalQuestions, totalCorrect, overallPct]);
 
   const getDomainGradient = (domainId: number) => {
     const gradients: Record<number, string> = {
@@ -209,6 +266,85 @@ function HomePage() {
               <div>
                 <div className="text-2xl font-bold text-text-primary">{formatStudyTime(totalTimeStudied)}</div>
                 <div className="text-xs text-text-secondary">Estudiado</div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Readiness Assessment */}
+        {totalQuestions > 0 && (
+          <section className="bg-card border border-card-border rounded-xl p-4 sm:p-6 animate-fade-in">
+            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Evaluacion de Preparacion</h3>
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Circular Progress Ring */}
+              <div className="relative w-32 h-32 flex-shrink-0">
+                <svg className="w-full h-full" viewBox="0 0 120 120">
+                  {/* Background circle */}
+                  <circle
+                    cx="60" cy="60" r="52"
+                    fill="none"
+                    stroke="currentColor"
+                    className="text-card-border"
+                    strokeWidth="8"
+                  />
+                  {/* Progress circle */}
+                  <circle
+                    cx="60" cy="60" r="52"
+                    fill="none"
+                    stroke="currentColor"
+                    className={
+                      readinessData.score >= 75 ? 'text-success' :
+                      readinessData.score >= 50 ? 'text-accent' :
+                      'text-error'
+                    }
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(readinessData.score / 100) * 2 * Math.PI * 52} ${2 * Math.PI * 52}`}
+                    strokeDashoffset="0"
+                    transform="rotate(-90 60 60)"
+                    style={{ transition: 'stroke-dasharray 0.5s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-bold ${
+                    readinessData.score >= 75 ? 'text-success' :
+                    readinessData.score >= 50 ? 'text-accent' :
+                    'text-error'
+                  }`}>
+                    {readinessData.score}%
+                  </span>
+                  <span className="text-[10px] text-text-secondary">READINESS</span>
+                </div>
+              </div>
+
+              {/* Status + Checklist */}
+              <div className="flex-1 w-full space-y-3">
+                <div className={`text-sm font-semibold ${
+                  readinessData.score >= 75 ? 'text-success' :
+                  readinessData.score >= 50 ? 'text-accent' :
+                  'text-error'
+                }`}>
+                  {readinessData.score >= 75
+                    ? 'Listo para rendir'
+                    : readinessData.score >= 50
+                    ? 'Casi listo — segui practicando'
+                    : 'Necesitas mas practica'}
+                </div>
+                <div className="space-y-1.5">
+                  {readinessData.checklist.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                        item.met
+                          ? 'bg-success/20 text-success'
+                          : 'bg-error/20 text-error'
+                      }`}>
+                        {item.met ? '✓' : '✗'}
+                      </span>
+                      <span className="text-text-primary flex-1">{item.label}</span>
+                      <span className="text-xs text-text-secondary">{item.detail}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </section>

@@ -48,6 +48,8 @@ function QuizPage() {
     const examSimParam = searchParams.get('exam-sim');
     const topicsParam = searchParams.get('topics');
     const bookmarksParam = searchParams.get('bookmarks');
+    const wrongParam = searchParams.get('wrong');
+    const wrongDomainParam = searchParams.get('wrongDomain');
 
     if (!domainsParam) {
       router.push('/');
@@ -60,6 +62,7 @@ function QuizPage() {
     const examSim = examSimParam === 'true';
     const selectedTopics = topicsParam ? topicsParam.split(',') : [];
     const useBookmarks = bookmarksParam === 'true';
+    const useWrong = wrongParam === 'true';
 
     setIsExamSim(examSim);
 
@@ -68,6 +71,17 @@ function QuizPage() {
     if (useBookmarks) {
       const bookmarkIds = getBookmarks();
       filtered = allQuestions.filter(q => bookmarkIds.includes(q.id));
+      count = filtered.length;
+    } else if (useWrong) {
+      const freq = getFrequentlyWrong();
+      const wrongIds = Object.keys(freq);
+      filtered = allQuestions.filter(q => wrongIds.includes(q.id));
+      if (wrongDomainParam) {
+        const domainFilter = Number(wrongDomainParam);
+        filtered = filtered.filter(q => q.domain === domainFilter);
+      }
+      // Sort by most frequently wrong first
+      filtered.sort((a, b) => (freq[b.id] || 0) - (freq[a.id] || 0));
       count = filtered.length;
     } else {
       filtered = allQuestions.filter(q => selectedDomains.includes(q.domain));

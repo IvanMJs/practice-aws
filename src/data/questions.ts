@@ -6010,5 +6010,4 @@ export const questions: Question[] = [
       'd5-q42-d': 'Amazon Route 53 es un servicio de DNS para resolucion de nombres de dominio; no tiene relacion con el monitoreo de metricas de inferencia ni con la auditoria de llamadas a la API.',
     },
   },
-
 ];
