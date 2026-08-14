@@ -15,6 +15,7 @@ function HomePage() {
   const [questionCount, setQuestionCount] = useState<number>(20);
   const [mode, setMode] = useState<'practice' | 'exam'>('practice');
   const [showConfig, setShowConfig] = useState(false);
+  const [allResults, setAllResults] = useState<QuizResult[]>([]);
   const [recentResults, setRecentResults] = useState<QuizResult[]>([]);
   const [domainStats, setDomainStats] = useState<Record<number, { correct: number; total: number; attempts: number }>>({});
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -24,6 +25,7 @@ function HomePage() {
 
   useEffect(() => {
     const results = getResults();
+    setAllResults(results);
     setRecentResults(results.slice(0, 5));
     setDomainStats(getDomainStats());
     setStreak(getStreak());
@@ -74,13 +76,13 @@ function HomePage() {
     router.push(`/quiz?${params.toString()}`);
   }, [router]);
 
-  const allResults = getResults();
   const totalCorrect = allResults.reduce((s, r) => s + r.score, 0);
   const totalQuestions = allResults.reduce((s, r) => s + r.total, 0);
   const overallPct = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
 
   const handleClearResults = useCallback(() => {
     clearResults();
+    setAllResults([]);
     setRecentResults([]);
     setDomainStats({});
     setShowClearConfirm(false);
