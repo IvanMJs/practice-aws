@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questions as allQuestions, domains } from '@/data/questions';
 import { topics } from '@/data/topics';
-import { getResults, recordDailyStats, updateStreak, recordWrongAnswers } from '@/lib/storage';
+import { getResults, recordDailyStats, updateStreak } from '@/lib/storage';
 import { domainResources } from '@/data/resources';
 import type { QuizResult, Question } from '@/types';
 
@@ -39,21 +39,7 @@ function ResultsPage() {
       recordDailyStats(found.total, found.score, found.timeSpent);
       updateStreak();
 
-      // Record wrong answers for spaced repetition
-      const wrongIds: string[] = [];
-      for (const [qId, userAnswers] of Object.entries(found.answers)) {
-        const question = allQuestions.find(q => q.id === qId);
-        if (!question) continue;
-        const isCorrect =
-          userAnswers.length === question.correctAnswers.length &&
-          question.correctAnswers.every(a => userAnswers.includes(a));
-        if (!isCorrect) {
-          wrongIds.push(qId);
-        }
-      }
-      if (wrongIds.length > 0) {
-        recordWrongAnswers(wrongIds);
-      }
+      // Wrong answers are already recorded in quiz/page.tsx finishQuiz()
     }
   }, [searchParams, router]);
 
