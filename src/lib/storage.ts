@@ -50,6 +50,10 @@ export function getDomainStats(): Record<
 export function clearResults(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem(RESULTS_KEY);
+    localStorage.removeItem('aws-aif-c01-used-questions');
+    localStorage.removeItem('aws-aif-c01-wrong-answers');
+    localStorage.removeItem('aws-aif-c01-daily-stats');
+    localStorage.removeItem('aws-aif-c01-streak');
   }
 }
 
@@ -228,6 +232,18 @@ export function recordWrongAnswers(questionIds: string[]): void {
     freq[id] = (freq[id] || 0) + 1;
   }
   localStorage.setItem(WRONG_ANSWERS_KEY, JSON.stringify(freq));
+}
+
+export function recordCorrectAnswer(questionId: string): void {
+  if (typeof window === 'undefined') return;
+  const data = getFrequentlyWrong();
+  if (data[questionId]) {
+    data[questionId]--;
+    if (data[questionId] <= 0) {
+      delete data[questionId];
+    }
+    localStorage.setItem(WRONG_ANSWERS_KEY, JSON.stringify(data));
+  }
 }
 
 export function getFrequentlyWrong(): Record<string, number> {

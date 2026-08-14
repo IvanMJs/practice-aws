@@ -90,7 +90,7 @@ function ResultsPage() {
   const secs = result.timeSpent % 60;
 
   // AWS-style score (100-1000 scale, 700 = pass)
-  const awsScore = Math.round(100 + (pct / 100) * 900);
+  const awsScore = Math.round(100 + (Math.pow(pct / 100, 0.85)) * 900);
 
   const scoreColor = pct >= 80 ? 'text-success' : pct >= 60 ? 'text-accent' : 'text-error';
   const scoreBg = pct >= 80 ? 'from-success/20 to-success/5' : pct >= 60 ? 'from-accent/20 to-accent/5' : 'from-error/20 to-error/5';

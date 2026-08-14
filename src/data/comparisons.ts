@@ -576,4 +576,181 @@ export const comparisons: Comparison[] = [
       },
     ],
   },
+  {
+    id: 'clarify-vs-guardrails',
+    title: 'SageMaker Clarify vs Bedrock Guardrails',
+    items: ['SageMaker Clarify', 'Bedrock Guardrails'],
+    criteria: [
+      {
+        label: 'Proposito',
+        values: [
+          'Detectar sesgo y explicar predicciones ML',
+          'Filtrar contenido y proteger apps de IA generativa',
+        ],
+      },
+      {
+        label: 'Tipo de modelo',
+        values: [
+          'Modelos ML tradicionales (clasificacion, regresion)',
+          'Modelos fundacionales (LLMs, generacion de texto/imagen)',
+        ],
+      },
+      {
+        label: 'Analisis',
+        values: [
+          'Pre y post-entrenamiento (datos y modelo)',
+          'En tiempo real durante la inferencia',
+        ],
+      },
+      {
+        label: 'Tecnica',
+        values: [
+          'SHAP values, metricas estadisticas de sesgo',
+          'Filtros de contenido, deteccion de PII, denegacion de temas',
+        ],
+      },
+      {
+        label: 'Integracion',
+        values: [
+          'SageMaker Training/Endpoints',
+          'Amazon Bedrock InvokeModel',
+        ],
+      },
+      {
+        label: 'Output',
+        values: [
+          'Reportes de sesgo y explicabilidad',
+          'Bloqueo/modificacion de respuestas en tiempo real',
+        ],
+      },
+    ],
+    whenToUse: [
+      {
+        item: 'SageMaker Clarify',
+        use: 'Cuando necesitas entender POR QUE un modelo ML predice algo o detectar sesgo en datos/modelo',
+      },
+      {
+        item: 'Bedrock Guardrails',
+        use: 'Cuando necesitas proteger una app de IA generativa de respuestas daninas, PII o temas prohibidos',
+      },
+    ],
+  },
+  {
+    id: 'macie-vs-comprehend',
+    title: 'Amazon Macie vs Amazon Comprehend (deteccion de PII)',
+    items: ['Amazon Macie', 'Amazon Comprehend'],
+    criteria: [
+      {
+        label: 'Fuente de datos',
+        values: [
+          'Buckets de Amazon S3',
+          'Texto en tiempo real (strings, documentos)',
+        ],
+      },
+      {
+        label: 'Modo',
+        values: [
+          'Escaneo programado o bajo demanda',
+          'API call por request',
+        ],
+      },
+      {
+        label: 'Alcance',
+        values: [
+          'Descubre y clasifica datos sensibles almacenados',
+          'Detecta y extrae PII de texto proporcionado',
+        ],
+      },
+      {
+        label: 'Caso de uso',
+        values: [
+          'Auditoria de seguridad de datos en reposo',
+          'Redactar PII antes de enviar texto a un LLM',
+        ],
+      },
+      {
+        label: 'Tipos de PII',
+        values: [
+          'Credenciales, datos financieros, datos de salud, identificadores',
+          'Nombres, direcciones, telefonos, SSN, emails',
+        ],
+      },
+      {
+        label: 'Integracion',
+        values: [
+          'Security Hub, EventBridge',
+          'Bedrock, Lambda, Step Functions',
+        ],
+      },
+    ],
+    whenToUse: [
+      {
+        item: 'Amazon Macie',
+        use: 'Cuando necesitas escanear S3 para encontrar datos sensibles expuestos o mal clasificados',
+      },
+      {
+        item: 'Amazon Comprehend',
+        use: 'Cuando necesitas detectar/redactar PII en texto antes de procesarlo con IA',
+      },
+    ],
+  },
+  {
+    id: 'ondemand-vs-provisioned',
+    title: 'On-Demand vs Provisioned Throughput (Bedrock)',
+    items: ['On-Demand', 'Provisioned Throughput'],
+    criteria: [
+      {
+        label: 'Precio',
+        values: [
+          'Pago por token (input + output)',
+          'Tarifa fija por hora/mes por unidad de throughput',
+        ],
+      },
+      {
+        label: 'Escalado',
+        values: [
+          'Automatico, sin compromiso',
+          'Capacidad reservada garantizada',
+        ],
+      },
+      {
+        label: 'Latencia',
+        values: [
+          'Variable segun demanda',
+          'Consistente y predecible',
+        ],
+      },
+      {
+        label: 'Ideal para',
+        values: [
+          'Desarrollo, pruebas, cargas variables',
+          'Produccion con trafico alto y constante',
+        ],
+      },
+      {
+        label: 'Compromiso minimo',
+        values: [
+          'Ninguno',
+          '1 mes o 6 meses',
+        ],
+      },
+      {
+        label: 'Costo a escala',
+        values: [
+          'Mas caro con volumen alto',
+          'Mas economico con uso sostenido (hasta 50% descuento)',
+        ],
+      },
+    ],
+    whenToUse: [
+      {
+        item: 'On-Demand',
+        use: 'Para desarrollo/pruebas o cargas impredecibles donde no queres compromiso',
+      },
+      {
+        item: 'Provisioned Throughput',
+        use: 'Para produccion con trafico constante donde necesitas latencia garantizada y ahorro de costos',
+      },
+    ],
+  },
 ];

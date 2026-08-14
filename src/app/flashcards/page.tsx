@@ -215,7 +215,7 @@ export default function FlashcardsPage() {
                 {/* Front */}
                 <div
                   className="absolute inset-0 rounded-2xl border border-card-border bg-card p-6 sm:p-8 flex flex-col items-center justify-center gap-4"
-                  style={{ backfaceVisibility: 'hidden' }}
+                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 >
                   <span className="text-5xl sm:text-6xl">{currentCard.emoji}</span>
                   <h2 className="text-xl sm:text-2xl font-bold text-text-primary text-center">
@@ -240,7 +240,7 @@ export default function FlashcardsPage() {
                 {/* Back */}
                 <div
                   className="absolute inset-0 rounded-2xl border border-card-border bg-card p-6 sm:p-8 flex flex-col overflow-y-auto"
-                  style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                  style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 >
                   <h3 className="text-lg font-bold text-accent mb-4">{currentCard.front}</h3>
                   <ul className="space-y-2.5 flex-1">

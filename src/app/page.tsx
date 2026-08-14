@@ -202,6 +202,8 @@ function HomePage() {
             <div className="hidden sm:flex items-center gap-4">
               <Link href="/progress" className="text-sm text-text-secondary hover:text-accent transition-colors">Progreso</Link>
               <Link href="/study" className="text-sm text-text-secondary hover:text-accent transition-colors">Estudiar</Link>
+              <Link href="/flashcards" className="text-sm text-text-secondary hover:text-accent transition-colors">Flashcards</Link>
+              <Link href="/comparaciones" className="text-sm text-text-secondary hover:text-accent transition-colors">Comparaciones</Link>
               <Link href="/bookmarks" className="text-sm text-text-secondary hover:text-accent transition-colors relative">
                 Marcados
                 {bookmarkCount > 0 && (

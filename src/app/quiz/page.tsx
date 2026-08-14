@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { questions as allQuestions, domains } from '@/data/questions';
-import { saveResult, saveUsedQuestionIds, getUsedQuestionIds, toggleBookmark, isBookmarked, getFrequentlyWrong, getBookmarks } from '@/lib/storage';
+import { saveResult, saveUsedQuestionIds, getUsedQuestionIds, toggleBookmark, isBookmarked, getFrequentlyWrong, getBookmarks, recordCorrectAnswer, recordWrongAnswers } from '@/lib/storage';
 import type { Question, QuizState, QuizResult } from '@/types';
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -33,6 +33,7 @@ function QuizPage() {
   const [quizState, setQuizState] = useState<QuizState | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [bookmarkedQuestions, setBookmarkedQuestions] = useState<Set<string>>(new Set());
   const [isExamSim, setIsExamSim] = useState(false);
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
@@ -235,6 +236,16 @@ function QuizPage() {
 
   const submitAnswer = useCallback(() => {
     if (!quizState || !currentQuestion) return;
+
+    // Check if the answer is correct and record for spaced repetition
+    const userAnswers = quizState.answers[currentQuestion.id] ?? [];
+    const isAnswerCorrect =
+      userAnswers.length === currentQuestion.correctAnswers.length &&
+      currentQuestion.correctAnswers.every(a => userAnswers.includes(a));
+    if (isAnswerCorrect) {
+      recordCorrectAnswer(currentQuestion.id);
+    }
+
     setQuizState(prev => {
       if (!prev) return prev;
       return {
@@ -320,6 +331,21 @@ function QuizPage() {
       }
     }
 
+    // Record wrong and skipped questions for spaced repetition
+    const wrongIds: string[] = [];
+    for (const q of quizState.questions) {
+      const userAnswers = quizState.answers[q.id] ?? [];
+      const isCorrect =
+        userAnswers.length === q.correctAnswers.length &&
+        q.correctAnswers.every(a => userAnswers.includes(a));
+      if (!isCorrect) {
+        wrongIds.push(q.id);
+      }
+    }
+    if (wrongIds.length > 0) {
+      recordWrongAnswers(wrongIds);
+    }
+
     const result: QuizResult = {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
@@ -364,7 +390,7 @@ function QuizPage() {
         <div className="max-w-3xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between mb-2">
             <button
-              onClick={() => router.push('/')}
+              onClick={() => setShowExitConfirm(true)}
               className="text-text-secondary hover:text-text-primary transition-colors text-sm flex items-center gap-1"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -707,6 +733,35 @@ function QuizPage() {
                 className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-accent hover:bg-accent-hover text-black transition-colors min-h-10"
               >
                 Finalizar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-card border border-card-border rounded-xl p-5 max-w-sm w-full animate-scale-in">
+            <h3 className="font-semibold text-text-primary mb-2">Salir del Quiz?</h3>
+            <p className="text-sm text-text-secondary mb-1">
+              Perderas todo el progreso de este quiz.
+            </p>
+            <p className="text-sm text-text-secondary">
+              Has respondido {answeredCount} de {quizState.questions.length} preguntas.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium border border-card-border text-text-secondary hover:border-accent/40 transition-colors min-h-10"
+              >
+                Continuar Quiz
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-error/90 hover:bg-error text-white transition-colors min-h-10"
+              >
+                Salir
               </button>
             </div>
           </div>

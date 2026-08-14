@@ -60,6 +60,34 @@ export default function StudyPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {/* Study Tools */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Link
+            href="/flashcards"
+            className="bg-gradient-to-br from-purple-500/20 to-purple-600/5 border border-purple-500/30 rounded-xl p-4 hover:scale-[1.02] hover:shadow-lg transition-all duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">&#127183;</span>
+              <div>
+                <h3 className="font-semibold text-text-primary text-sm">Flashcards</h3>
+                <p className="text-xs text-text-secondary">50+ tarjetas interactivas</p>
+              </div>
+            </div>
+          </Link>
+          <Link
+            href="/comparaciones"
+            className="bg-gradient-to-br from-blue-500/20 to-blue-600/5 border border-blue-500/30 rounded-xl p-4 hover:scale-[1.02] hover:shadow-lg transition-all duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">&#128200;</span>
+              <div>
+                <h3 className="font-semibold text-text-primary text-sm">Comparaciones</h3>
+                <p className="text-xs text-text-secondary">Tablas comparativas de servicios</p>
+              </div>
+            </div>
+          </Link>
+        </div>
+
         {/* Domain Selector */}
         <div className="flex flex-wrap gap-2">
           {domains.map(domain => (
