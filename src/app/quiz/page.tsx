@@ -38,7 +38,13 @@ function QuizPage() {
   const [isExamSim, setIsExamSim] = useState(false);
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [loadingAi, setLoadingAi] = useState<string | null>(null);
+  const [confidence, setConfidence] = useState<Record<string, 'sure' | 'unsure' | 'guessing'>>({});
+  const [perQuestionTimer, setPerQuestionTimer] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState(0);
+  const [questionElapsed, setQuestionElapsed] = useState(0);
+  const PER_QUESTION_TIME = 78; // ~78 seconds per question (85min / 65 questions)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const questionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const questionContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize quiz
@@ -64,8 +70,11 @@ function QuizPage() {
     const selectedTopics = topicsParam ? topicsParam.split(',') : [];
     const useBookmarks = bookmarksParam === 'true';
     const useWrong = wrongParam === 'true';
+    const difficultyParam = searchParams.get('difficulty');
+    const perQTimerParam = searchParams.get('perQTimer');
 
     setIsExamSim(examSim);
+    setPerQuestionTimer(perQTimerParam === 'true');
 
     let filtered: Question[];
 
@@ -96,11 +105,20 @@ function QuizPage() {
       }
     }
 
+    // Difficulty filtering
+    if (difficultyParam) {
+      const difficulties = difficultyParam.split(',');
+      const diffFiltered = filtered.filter(q => q.difficulty && difficulties.includes(q.difficulty));
+      if (diffFiltered.length > 0) {
+        filtered = diffFiltered;
+      }
+    }
+
     let selected: Question[];
 
     if (examSim) {
-      // Exam simulation: distribute questions per domain
       count = 65;
+      const usedIds = getUsedQuestionIds();
       const byDomain: Record<number, Question[]> = {};
       for (const q of filtered) {
         if (!byDomain[q.domain]) byDomain[q.domain] = [];
@@ -111,8 +129,15 @@ function QuizPage() {
       for (const [domainIdStr, needed] of Object.entries(EXAM_SIM_DISTRIBUTION)) {
         const domainId = Number(domainIdStr);
         const pool = byDomain[domainId] || [];
-        const shuffled = shuffleArray(pool);
-        selected.push(...shuffled.slice(0, needed));
+        const unseen = pool.filter(q => !usedIds.includes(q.id));
+        const seen = pool.filter(q => usedIds.includes(q.id));
+        let domainSelected: Question[];
+        if (unseen.length >= needed) {
+          domainSelected = shuffleArray(unseen).slice(0, needed);
+        } else {
+          domainSelected = [...shuffleArray(unseen), ...shuffleArray(seen).slice(0, needed - unseen.length)];
+        }
+        selected.push(...domainSelected);
       }
       selected = shuffleArray(selected);
     } else {
@@ -198,6 +223,23 @@ function QuizPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, isExamSim]);
+
+  // Per-question timer - reset on question change
+  useEffect(() => {
+    if (!perQuestionTimer || !quizState) return;
+    const now = Date.now();
+    setQuestionStartTime(now);
+    setQuestionElapsed(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizState?.currentIndex, perQuestionTimer]);
+
+  useEffect(() => {
+    if (!perQuestionTimer || !questionStartTime) return;
+    const interval = setInterval(() => {
+      setQuestionElapsed(Math.floor((Date.now() - questionStartTime) / 1000));
+    }, 200);
+    return () => clearInterval(interval);
+  }, [perQuestionTimer, questionStartTime]);
 
   const scrollToTop = useCallback(() => {
     questionContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -444,13 +486,31 @@ function QuizPage() {
 
       {/* Main Content */}
       <main ref={questionContainerRef} className="flex-1 max-w-3xl mx-auto w-full px-4 py-4 sm:py-6 space-y-4">
-        {/* Domain Badge */}
+        {/* Domain Badge + Difficulty + Per-question timer */}
         {domain && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm">{domain.icon}</span>
             <span className="text-xs text-text-secondary">{domain.name}</span>
+            {currentQuestion.difficulty && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                currentQuestion.difficulty === 'easy' ? 'bg-success/20 text-success' :
+                currentQuestion.difficulty === 'medium' ? 'bg-accent/20 text-accent' :
+                'bg-error/20 text-error'
+              }`}>
+                {currentQuestion.difficulty === 'easy' ? 'Facil' : currentQuestion.difficulty === 'medium' ? 'Media' : 'Dificil'}
+              </span>
+            )}
+            {perQuestionTimer && !isSubmitted && (
+              <span className={`text-xs font-mono ml-auto ${
+                questionElapsed > PER_QUESTION_TIME ? 'text-error font-bold' :
+                questionElapsed > PER_QUESTION_TIME * 0.75 ? 'text-accent' :
+                'text-text-secondary'
+              }`}>
+                {formatTime(Math.max(0, PER_QUESTION_TIME - questionElapsed))}
+              </span>
+            )}
             {currentQuestion.type === 'multiple' && (
-              <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full ml-auto">
+              <span className={`text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full ${perQuestionTimer ? '' : 'ml-auto'}`}>
                 Selecciona {requiredCount} respuestas
               </span>
             )}
@@ -526,19 +586,41 @@ function QuizPage() {
           })}
         </div>
 
-        {/* Practice Mode: Verify Button */}
+        {/* Confidence Meter + Verify Button */}
         {quizState.config.mode === 'practice' && !isSubmitted && (
-          <button
-            onClick={submitAnswer}
-            disabled={!canSubmit}
-            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 min-h-12 ${
-              canSubmit
-                ? 'bg-accent hover:bg-accent-hover text-black hover:shadow-lg hover:shadow-accent/25 active:scale-[0.98]'
-                : 'bg-card-border text-text-secondary cursor-not-allowed'
-            }`}
-          >
-            Verificar Respuesta
-          </button>
+          <div className="space-y-2">
+            {canSubmit && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-text-secondary whitespace-nowrap">Confianza:</span>
+                <div className="flex gap-1.5 flex-1">
+                  {([['sure', 'Seguro', 'bg-success/20 text-success border-success/40'], ['unsure', 'Dudoso', 'bg-accent/20 text-accent border-accent/40'], ['guessing', 'Adivinando', 'bg-error/20 text-error border-error/40']] as const).map(([val, label, colors]) => (
+                    <button
+                      key={val}
+                      onClick={() => setConfidence(prev => ({ ...prev, [currentQuestion.id]: val }))}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+                        confidence[currentQuestion.id] === val
+                          ? colors
+                          : 'border-card-border text-text-secondary hover:border-accent/30'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button
+              onClick={submitAnswer}
+              disabled={!canSubmit}
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 min-h-12 ${
+                canSubmit
+                  ? 'bg-accent hover:bg-accent-hover text-black hover:shadow-lg hover:shadow-accent/25 active:scale-[0.98]'
+                  : 'bg-card-border text-text-secondary cursor-not-allowed'
+              }`}
+            >
+              Verificar Respuesta
+            </button>
+          </div>
         )}
 
         {/* Explanation (Practice Mode) - Show ALL option explanations */}
@@ -564,6 +646,19 @@ function QuizPage() {
                     </svg>
                     <span className="font-semibold text-error">Incorrecto</span>
                   </>
+                )}
+                {confidence[currentQuestion.id] && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ml-auto ${
+                    isCorrect && confidence[currentQuestion.id] === 'sure' ? 'bg-success/20 text-success' :
+                    isCorrect && confidence[currentQuestion.id] === 'guessing' ? 'bg-accent/20 text-accent' :
+                    !isCorrect && confidence[currentQuestion.id] === 'sure' ? 'bg-error/20 text-error' :
+                    'bg-card-border text-text-secondary'
+                  }`}>
+                    {isCorrect && confidence[currentQuestion.id] === 'guessing' ? 'Suerte! Repasa este tema' :
+                     !isCorrect && confidence[currentQuestion.id] === 'sure' ? 'Cuidado! Concepto mal aprendido' :
+                     isCorrect && confidence[currentQuestion.id] === 'unsure' ? 'Refuerza este concepto' :
+                     ''}
+                  </span>
                 )}
               </div>
               <p className="text-sm text-text-primary leading-relaxed mb-3">

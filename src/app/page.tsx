@@ -14,6 +14,8 @@ function HomePage() {
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [questionCount, setQuestionCount] = useState<number>(20);
   const [mode, setMode] = useState<'practice' | 'exam'>('practice');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string[]>([]);
+  const [usePerQuestionTimer, setUsePerQuestionTimer] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [allResults, setAllResults] = useState<QuizResult[]>([]);
   const [recentResults, setRecentResults] = useState<QuizResult[]>([]);
@@ -64,8 +66,14 @@ function HomePage() {
     if (selectedTopics.length > 0) {
       params.set('topics', selectedTopics.join(','));
     }
+    if (selectedDifficulty.length > 0) {
+      params.set('difficulty', selectedDifficulty.join(','));
+    }
+    if (usePerQuestionTimer) {
+      params.set('perQTimer', 'true');
+    }
     router.push(`/quiz?${params.toString()}`);
-  }, [selectedDomains, questionCount, mode, selectedTopics, router]);
+  }, [selectedDomains, questionCount, mode, selectedTopics, selectedDifficulty, usePerQuestionTimer, router]);
 
   const startExamSimulation = useCallback(() => {
     const params = new URLSearchParams();
@@ -495,6 +503,28 @@ function HomePage() {
               </div>
             )}
 
+            {/* Difficulty Filter */}
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Dificultad (opcional - deja vacio para todas)
+              </label>
+              <div className="flex gap-2">
+                {([['easy', 'Facil', 'bg-success/20 text-success border-success/40'], ['medium', 'Media', 'bg-accent/20 text-accent border-accent/40'], ['hard', 'Dificil', 'bg-error/20 text-error border-error/40']] as const).map(([val, label, colors]) => (
+                  <button
+                    key={val}
+                    onClick={() => setSelectedDifficulty(prev =>
+                      prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
+                    )}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all duration-200 ${
+                      selectedDifficulty.includes(val) ? colors : 'border-card-border text-text-secondary hover:border-accent/30'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Question Count */}
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">Numero de preguntas</label>
@@ -542,6 +572,27 @@ function HomePage() {
                   <div className="text-xs text-text-secondary mt-1">Resultados al final del quiz</div>
                 </button>
               </div>
+            </div>
+
+            {/* Per-question Timer */}
+            <div>
+              <label
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                  usePerQuestionTimer ? 'border-accent/50 bg-accent/10' : 'border-card-border bg-background/50'
+                }`}
+                onClick={() => setUsePerQuestionTimer(prev => !prev)}
+              >
+                <input
+                  type="checkbox"
+                  checked={usePerQuestionTimer}
+                  onChange={() => setUsePerQuestionTimer(prev => !prev)}
+                  className="w-4 h-4 rounded accent-accent"
+                />
+                <div>
+                  <div className="text-sm font-medium text-text-primary">Timer por pregunta</div>
+                  <div className="text-xs text-text-secondary">78 segundos por pregunta (ritmo real del examen)</div>
+                </div>
+              </label>
             </div>
 
             {/* Start */}
