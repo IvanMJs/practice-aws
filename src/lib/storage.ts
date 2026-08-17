@@ -74,8 +74,7 @@ export function saveUsedQuestionIds(questionIds: string[]): void {
   if (typeof window === 'undefined') return;
   const existing = getUsedQuestionIds();
   const combined = [...new Set([...questionIds, ...existing])];
-  // Keep only last 200 to allow rotation
-  const trimmed = combined.slice(0, 200);
+  const trimmed = combined.slice(0, 450);
   localStorage.setItem(USED_QUESTIONS_KEY, JSON.stringify(trimmed));
 }
 

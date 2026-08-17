@@ -2,6 +2,7 @@ export interface Question {
   id: string;
   domain: number; // 1-5
   topic: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
   question: string;
   options: Option[];
   correctAnswers: string[]; // array of option IDs
