@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase';
 
 const PROGRESS_KEYS = [
@@ -11,9 +12,35 @@ const PROGRESS_KEYS = [
   'flashcard-known',
 ];
 
+function getExpectedToken(): string | null {
+  const user = process.env.APP_USERNAME;
+  const pass = process.env.APP_PASSWORD;
+  if (!user || !pass) return null;
+  const raw = `${user}:${pass}:aif-c01-secret`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+async function isAuthenticated(): Promise<boolean> {
+  const expectedToken = getExpectedToken();
+  if (!expectedToken) return true;
+  const cookieStore = await cookies();
+  const session = cookieStore.get('aif-session');
+  return session?.value === expectedToken;
+}
+
 export async function GET() {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
+  }
+
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { data, error } = await supabase
@@ -36,6 +63,10 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 });
+  }
+
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = await request.json() as Record<string, unknown>;
