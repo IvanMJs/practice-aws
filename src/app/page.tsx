@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { domains } from '@/data/questions';
 import { topics } from '@/data/topics';
-import { getResults, getDomainStats, clearResults, getStreak, getBookmarks, getDailyStatsHistory, getWeakDomains } from '@/lib/storage';
+import { getResults, getDomainStats, clearResults, getStreak, getBookmarks, getDailyStatsHistory } from '@/lib/storage';
 import type { QuizResult, StudyStreak } from '@/types';
 
 function HomePage() {
@@ -36,11 +36,16 @@ function HomePage() {
     const dailyStats = getDailyStatsHistory();
     const totalTime = dailyStats.reduce((sum, d) => sum + d.timeSpent, 0);
     setTotalTimeStudied(totalTime);
-    const weak = getWeakDomains();
-    const entries = Object.entries(weak).filter(([, v]) => v.total >= 5);
-    if (entries.length > 0) {
-      const worst = entries.reduce((a, b) => a[1].percentage < b[1].percentage ? a : b);
-      setWeakestDomain({ id: Number(worst[0]), percentage: worst[1].percentage });
+    const ds = getDomainStats();
+    const domainEntries = Object.entries(ds).filter(([, v]) => v.total >= 5);
+    if (domainEntries.length > 0) {
+      const worst = domainEntries.reduce((a, b) => {
+        const pctA = a[1].total > 0 ? a[1].correct / a[1].total : 1;
+        const pctB = b[1].total > 0 ? b[1].correct / b[1].total : 1;
+        return pctA < pctB ? a : b;
+      });
+      const pct = Math.round((worst[1].correct / worst[1].total) * 100);
+      setWeakestDomain({ id: Number(worst[0]), percentage: pct });
     }
   }, []);
 
