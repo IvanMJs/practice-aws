@@ -1,4 +1,5 @@
 import type { QuizResult, DailyStats, StudyStreak } from "@/types";
+import { debouncedPush } from "./sync";
 
 const RESULTS_KEY = "aws-aif-c01-results";
 
@@ -7,6 +8,7 @@ export function saveResult(result: QuizResult): void {
   results.unshift(result);
   if (typeof window !== "undefined") {
     localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+    debouncedPush();
   }
 }
 
@@ -54,6 +56,7 @@ export function clearResults(): void {
     localStorage.removeItem('aws-aif-c01-wrong-answers');
     localStorage.removeItem('aws-aif-c01-daily-stats');
     localStorage.removeItem('aws-aif-c01-streak');
+    debouncedPush();
   }
 }
 
@@ -76,11 +79,13 @@ export function saveUsedQuestionIds(questionIds: string[]): void {
   const combined = [...new Set([...questionIds, ...existing])];
   const trimmed = combined.slice(0, 630);
   localStorage.setItem(USED_QUESTIONS_KEY, JSON.stringify(trimmed));
+  debouncedPush();
 }
 
 export function clearUsedQuestions(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(USED_QUESTIONS_KEY);
+    debouncedPush();
   }
 }
 
@@ -129,10 +134,12 @@ export function toggleBookmark(questionId: string): boolean {
   if (idx >= 0) {
     bookmarks.splice(idx, 1);
     localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+    debouncedPush();
     return false;
   } else {
     bookmarks.push(questionId);
     localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+    debouncedPush();
     return true;
   }
 }
@@ -165,6 +172,7 @@ export function recordDailyStats(questionsAnswered: number, correctAnswers: numb
   // Keep last 30 days
   const sorted = history.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30);
   localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(sorted));
+  debouncedPush();
 }
 
 export function getDailyStatsHistory(): DailyStats[] {
@@ -217,6 +225,7 @@ export function updateStreak(): void {
 
   streak.lastStudyDate = today;
   localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
+  debouncedPush();
 }
 
 // ==================
@@ -231,6 +240,7 @@ export function recordWrongAnswers(questionIds: string[]): void {
     freq[id] = (freq[id] || 0) + 1;
   }
   localStorage.setItem(WRONG_ANSWERS_KEY, JSON.stringify(freq));
+  debouncedPush();
 }
 
 export function recordCorrectAnswer(questionId: string): void {
@@ -242,6 +252,7 @@ export function recordCorrectAnswer(questionId: string): void {
       delete data[questionId];
     }
     localStorage.setItem(WRONG_ANSWERS_KEY, JSON.stringify(data));
+    debouncedPush();
   }
 }
 

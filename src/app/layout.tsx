@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
+import SyncProvider from "@/components/SyncProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -40,7 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
       <body className="min-h-dvh bg-background text-text-primary">
-        {children}
+        <SyncProvider>
+          {children}
+        </SyncProvider>
         <BottomNav />
         <ServiceWorkerRegistrar />
       </body>

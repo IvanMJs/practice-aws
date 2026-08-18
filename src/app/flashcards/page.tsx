@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { flashcards, type Flashcard } from '@/data/flashcards';
+import { debouncedPush } from '@/lib/sync';
 
 const STORAGE_KEY = 'flashcard-known';
 
@@ -35,6 +36,7 @@ function getKnown(): Set<string> {
 
 function saveKnown(known: Set<string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...known]));
+  debouncedPush();
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
