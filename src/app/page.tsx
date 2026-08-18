@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { domains } from '@/data/questions';
 import { topics } from '@/data/topics';
-import { getResults, getDomainStats, clearResults, getStreak, getBookmarks, getDailyStatsHistory } from '@/lib/storage';
+import { getResults, getDomainStats, clearResults, getStreak, getBookmarks, getDailyStatsHistory, getWeakDomains } from '@/lib/storage';
 import type { QuizResult, StudyStreak } from '@/types';
 
 function HomePage() {
@@ -24,6 +24,7 @@ function HomePage() {
   const [streak, setStreak] = useState<StudyStreak>({ currentStreak: 0, longestStreak: 0, lastStudyDate: '' });
   const [bookmarkCount, setBookmarkCount] = useState(0);
   const [totalTimeStudied, setTotalTimeStudied] = useState(0);
+  const [weakestDomain, setWeakestDomain] = useState<{ id: number; percentage: number } | null>(null);
 
   useEffect(() => {
     const results = getResults();
@@ -35,6 +36,12 @@ function HomePage() {
     const dailyStats = getDailyStatsHistory();
     const totalTime = dailyStats.reduce((sum, d) => sum + d.timeSpent, 0);
     setTotalTimeStudied(totalTime);
+    const weak = getWeakDomains();
+    const entries = Object.entries(weak).filter(([, v]) => v.total >= 5);
+    if (entries.length > 0) {
+      const worst = entries.reduce((a, b) => a[1].percentage < b[1].percentage ? a : b);
+      setWeakestDomain({ id: Number(worst[0]), percentage: worst[1].percentage });
+    }
   }, []);
 
   const toggleDomain = useCallback((domainId: number) => {
@@ -360,6 +367,33 @@ function HomePage() {
           </section>
         )}
 
+        {/* Weak Domain Recommendation */}
+        {weakestDomain && weakestDomain.percentage < 70 && (
+          <section className="bg-gradient-to-r from-error/10 to-orange-500/10 border border-error/30 rounded-xl p-4 animate-fade-in">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-2xl flex-shrink-0">{domains.find(d => d.id === weakestDomain.id)?.icon}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-text-primary">Enfocate en: {domains.find(d => d.id === weakestDomain.id)?.name}</div>
+                  <div className="text-xs text-text-secondary">Tu dominio mas debil con {weakestDomain.percentage}% de aciertos</div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  params.set('domains', weakestDomain.id.toString());
+                  params.set('count', '20');
+                  params.set('mode', 'practice');
+                  router.push(`/quiz?${params.toString()}`);
+                }}
+                className="flex-shrink-0 bg-error/20 hover:bg-error/30 text-error font-semibold text-sm px-4 py-2 rounded-lg transition-all duration-200"
+              >
+                Practicar
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Hero */}
         <section className="text-center space-y-2 py-4">
           <h2 className="text-xl font-bold text-text-primary sm:text-2xl">
@@ -643,7 +677,32 @@ function HomePage() {
             </div>
           </section>
         )}
+        <div className="h-20 sm:hidden" />
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-card-border z-20">
+        <div className="flex items-center justify-around py-2 px-1">
+          {[
+            { href: '/', label: 'Inicio', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>, active: true },
+            { href: '/progress', label: 'Progreso', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg> },
+            { href: '/flashcards', label: 'Flashcards', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg> },
+            { href: '/study', label: 'Estudiar', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
+            { href: '/bookmarks', label: 'Marcados', icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg> },
+          ].map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
+                item.active ? 'text-accent' : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              {item.icon}
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
