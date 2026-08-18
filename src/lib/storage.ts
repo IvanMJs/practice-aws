@@ -74,7 +74,7 @@ export function saveUsedQuestionIds(questionIds: string[]): void {
   if (typeof window === 'undefined') return;
   const existing = getUsedQuestionIds();
   const combined = [...new Set([...questionIds, ...existing])];
-  const trimmed = combined.slice(0, 450);
+  const trimmed = combined.slice(0, 630);
   localStorage.setItem(USED_QUESTIONS_KEY, JSON.stringify(trimmed));
 }
 
