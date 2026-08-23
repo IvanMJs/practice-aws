@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -42,6 +42,8 @@ Se conciso pero completo. Responde en espanol.`
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('Anthropic API error:', response.status, errorBody);
       return NextResponse.json({ error: 'API request failed' }, { status: 500 });
     }
 
