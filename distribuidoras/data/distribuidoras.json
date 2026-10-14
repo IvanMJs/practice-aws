@@ -1,0 +1,370 @@
+[
+  {
+    "id": "edenor",
+    "nombre": "Edenor",
+    "jurisdiccion": "CABA y AMBA",
+    "provincias": [
+      "CABA",
+      "Buenos Aires"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "ENRE",
+    "regulador_verificado": false,
+    "sitio_web": "https://www.edenor.com"
+  },
+  {
+    "id": "edesur",
+    "nombre": "Edesur",
+    "jurisdiccion": "CABA y AMBA",
+    "provincias": [
+      "CABA",
+      "Buenos Aires"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "ENRE",
+    "regulador_verificado": false,
+    "sitio_web": "https://www.edesur.com.ar"
+  },
+  {
+    "id": "edelap",
+    "nombre": "EDELAP",
+    "jurisdiccion": "Buenos Aires",
+    "provincias": [
+      "Buenos Aires"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "OCEBA",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edea",
+    "nombre": "EDEA",
+    "jurisdiccion": "Buenos Aires",
+    "provincias": [
+      "Buenos Aires"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "OCEBA",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "eden",
+    "nombre": "EDEN",
+    "jurisdiccion": "Buenos Aires",
+    "provincias": [
+      "Buenos Aires"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "OCEBA",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edes",
+    "nombre": "EDES",
+    "jurisdiccion": "Buenos Aires",
+    "provincias": [
+      "Buenos Aires"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "OCEBA",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "epe",
+    "nombre": "EPE",
+    "jurisdiccion": "Santa Fe",
+    "provincias": [
+      "Santa Fe"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": "https://epe.santafe.gov.ar"
+  },
+  {
+    "id": "epec",
+    "nombre": "EPEC",
+    "jurisdiccion": "Córdoba",
+    "provincias": [
+      "Córdoba"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": "ERSeP",
+    "regulador_verificado": false,
+    "sitio_web": "https://www.epec.com.ar"
+  },
+  {
+    "id": "enersa",
+    "nombre": "ENERSA",
+    "jurisdiccion": "Entre Ríos",
+    "provincias": [
+      "Entre Ríos"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": "EPRE Entre Ríos",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edemsa",
+    "nombre": "EDEMSA",
+    "jurisdiccion": "Mendoza",
+    "provincias": [
+      "Mendoza"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "EPRE Mendoza",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "energia-san-juan",
+    "nombre": "Energía San Juan",
+    "jurisdiccion": "San Juan",
+    "provincias": [
+      "San Juan"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "EPRE San Juan",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edesal",
+    "nombre": "EDESAL",
+    "jurisdiccion": "San Luis",
+    "provincias": [
+      "San Luis"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edet",
+    "nombre": "EDET",
+    "jurisdiccion": "Tucumán",
+    "provincias": [
+      "Tucumán"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "ERSEPT",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edesa",
+    "nombre": "EDESA",
+    "jurisdiccion": "Salta",
+    "provincias": [
+      "Salta"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "ENRESP",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "ejesa",
+    "nombre": "EJESA",
+    "jurisdiccion": "Jujuy",
+    "provincias": [
+      "Jujuy"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "SUSEPU",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "ec-sapem",
+    "nombre": "EC SAPEM",
+    "jurisdiccion": "Catamarca",
+    "provincias": [
+      "Catamarca"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edelar",
+    "nombre": "EDELAR",
+    "jurisdiccion": "La Rioja",
+    "provincias": [
+      "La Rioja"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edese",
+    "nombre": "EDESE",
+    "jurisdiccion": "Santiago del Estero",
+    "provincias": [
+      "Santiago del Estero"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "secheep",
+    "nombre": "SECHEEP",
+    "jurisdiccion": "Chaco",
+    "provincias": [
+      "Chaco"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "refsa",
+    "nombre": "REFSA",
+    "jurisdiccion": "Formosa",
+    "provincias": [
+      "Formosa"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "dpec",
+    "nombre": "DPEC",
+    "jurisdiccion": "Corrientes",
+    "provincias": [
+      "Corrientes"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "energia-misiones",
+    "nombre": "Energía de Misiones",
+    "jurisdiccion": "Misiones",
+    "provincias": [
+      "Misiones"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "ape-la-pampa",
+    "nombre": "APE y cooperativas",
+    "jurisdiccion": "La Pampa",
+    "provincias": [
+      "La Pampa"
+    ],
+    "tipo": "cooperativa",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null,
+    "notas": "Agrupa a varias prestadoras (cooperativas). Para el análisis conviene desagregar por prestadora."
+  },
+  {
+    "id": "epen",
+    "nombre": "EPEN",
+    "jurisdiccion": "Neuquén",
+    "provincias": [
+      "Neuquén"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "edersa",
+    "nombre": "EdERSA",
+    "jurisdiccion": "Río Negro",
+    "provincias": [
+      "Río Negro"
+    ],
+    "tipo": "privada",
+    "tipo_verificado": false,
+    "regulador": "EPRE Río Negro",
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "cooperativas-chubut",
+    "nombre": "Cooperativas eléctricas",
+    "jurisdiccion": "Chubut",
+    "provincias": [
+      "Chubut"
+    ],
+    "tipo": "cooperativa",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null,
+    "notas": "Agrupa a varias prestadoras (cooperativas). Para el análisis conviene desagregar por prestadora."
+  },
+  {
+    "id": "spse",
+    "nombre": "SPSE",
+    "jurisdiccion": "Santa Cruz",
+    "provincias": [
+      "Santa Cruz"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  },
+  {
+    "id": "dpe-tdf",
+    "nombre": "DPE",
+    "jurisdiccion": "Tierra del Fuego",
+    "provincias": [
+      "Tierra del Fuego"
+    ],
+    "tipo": "estatal",
+    "tipo_verificado": false,
+    "regulador": null,
+    "regulador_verificado": false,
+    "sitio_web": null
+  }
+]

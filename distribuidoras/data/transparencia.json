@@ -1,0 +1,280 @@
+[
+  {
+    "distribuidora": "epe",
+    "criterio": "calidad_servicio",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://epe.santafe.gov.ar/institucional/informacion-tecnica",
+        "descripcion": "Informes semestrales de calidad de servicio",
+        "oficial": true,
+        "periodo": "Semestral, 2022–2026",
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "epe",
+    "criterio": "cortes",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://epe.santafe.gov.ar/institucional/trabajos-programados",
+        "descripcion": "Trabajos programados (cortes programados)",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": true,
+    "fecha_relevamiento": "2026-10-14",
+    "nota": "Se confirmaron los cortes programados. Los cortes en curso no se relevaron todavía."
+  },
+  {
+    "distribuidora": "epe",
+    "criterio": "obras",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://epe.santafe.gov.ar/institucional/epe-obras",
+        "descripcion": "Obras de la EPE",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "epe",
+    "criterio": "estados_contables",
+    "estado": "sin_relevar",
+    "fuentes": [],
+    "parcial": false,
+    "nota": "No están en el sitio de la EPE. Falta revisar la Cuenta de Inversión provincial (santafe.gob.ar/cuentainversion_2025), el ente regulador y el boletín oficial antes de poder marcarlo como no publicado.",
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "epec",
+    "criterio": "estados_contables",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.epec.com.ar/docs/transparencia/estados-contables-2024.pdf",
+        "descripcion": "Estados contables 2024",
+        "oficial": true,
+        "periodo": "Ejercicio 2024",
+        "fecha_documento": "2024",
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "epec",
+    "criterio": "cuadro_tarifario",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://ersep.cba.gov.ar/wp-content/uploads/2024/06/RG-76-2024-Modificacion-cuadro-tarifario-EPEC-MEM-0521-077458-2024_firmado_firmado_firmado_firmado_firmado_firmado_firmado.pdf",
+        "descripcion": "Resolución General ERSeP 76/2024: modificación del cuadro tarifario de EPEC",
+        "oficial": true,
+        "periodo": "Resolución de junio de 2024",
+        "fecha_documento": "2024-06",
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14",
+    "nota": "Fuente: el ente regulador (ERSeP). Hay que confirmar si es el cuadro vigente o si hubo resoluciones posteriores."
+  },
+  {
+    "distribuidora": "edenor",
+    "criterio": "cuadro_tarifario",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edenor.com/institucional/estructura-tarifaria",
+        "descripcion": "Estructura tarifaria",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "edenor",
+    "criterio": "estados_contables",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edenor.com/inversores/es/informacion-financiera/memoria-y-estados-financieros",
+        "descripcion": "Memoria y estados financieros",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "edenor",
+    "criterio": "cortes",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edenor.com/hogares-y-comercios/servicio-tecnico/cortes-programados",
+        "descripcion": "Cortes programados",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": true,
+    "fecha_relevamiento": "2026-10-14",
+    "nota": "Se confirmaron los cortes programados. Los cortes en curso no se relevaron todavía."
+  },
+  {
+    "distribuidora": "edenor",
+    "criterio": "obras",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edenor.com/obras",
+        "descripcion": "Obras",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "edesur",
+    "criterio": "cuadro_tarifario",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edesur.com.ar/tarifas-cuadro-tarifario/",
+        "descripcion": "Tarifas y cuadro tarifario",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "edesur",
+    "criterio": "estados_contables",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edesur.com.ar/acerca-de-edesur/informacion-financiera/",
+        "descripcion": "Información financiera",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "edesur",
+    "criterio": "calidad_servicio",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edesur.com.ar/acerca-de-edesur/calidad-del-servicio/",
+        "descripcion": "Calidad del servicio",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "edesur",
+    "criterio": "cortes",
+    "estado": "publica",
+    "fuentes": [
+      {
+        "url": "https://www.edesur.com.ar/servicios-al-cliente/cortes-programados/",
+        "descripcion": "Cortes programados",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      },
+      {
+        "url": "https://www.argentina.gob.ar/enre/estado-del-servicio-electrico-de-edesur",
+        "descripcion": "Estado del servicio eléctrico de Edesur (ENRE): cortes en curso",
+        "oficial": true,
+        "fecha_consulta": "2026-10-14"
+      }
+    ],
+    "parcial": false,
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "enersa",
+    "criterio": "cuadro_tarifario",
+    "estado": "no_verificable",
+    "fuentes": [],
+    "parcial": false,
+    "motivo": "El sitio de ENERSA bloquea el acceso automatizado mediante robots.txt. No se intentó eludir el bloqueo.",
+    "nota": "Puede relevarse a mano o en el sitio del ente regulador o el boletín oficial.",
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "enersa",
+    "criterio": "estados_contables",
+    "estado": "no_verificable",
+    "fuentes": [],
+    "parcial": false,
+    "motivo": "El sitio de ENERSA bloquea el acceso automatizado mediante robots.txt. No se intentó eludir el bloqueo.",
+    "nota": "Puede relevarse a mano o en el sitio del ente regulador o el boletín oficial.",
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "enersa",
+    "criterio": "calidad_servicio",
+    "estado": "no_verificable",
+    "fuentes": [],
+    "parcial": false,
+    "motivo": "El sitio de ENERSA bloquea el acceso automatizado mediante robots.txt. No se intentó eludir el bloqueo.",
+    "nota": "Puede relevarse a mano o en el sitio del ente regulador o el boletín oficial.",
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "enersa",
+    "criterio": "cortes",
+    "estado": "no_verificable",
+    "fuentes": [],
+    "parcial": false,
+    "motivo": "El sitio de ENERSA bloquea el acceso automatizado mediante robots.txt. No se intentó eludir el bloqueo.",
+    "nota": "Puede relevarse a mano o en el sitio del ente regulador o el boletín oficial.",
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "enersa",
+    "criterio": "obras",
+    "estado": "no_verificable",
+    "fuentes": [],
+    "parcial": false,
+    "motivo": "El sitio de ENERSA bloquea el acceso automatizado mediante robots.txt. No se intentó eludir el bloqueo.",
+    "nota": "Puede relevarse a mano o en el sitio del ente regulador o el boletín oficial.",
+    "fecha_relevamiento": "2026-10-14"
+  },
+  {
+    "distribuidora": "enersa",
+    "criterio": "reclamos",
+    "estado": "no_verificable",
+    "fuentes": [],
+    "parcial": false,
+    "motivo": "El sitio de ENERSA bloquea el acceso automatizado mediante robots.txt. No se intentó eludir el bloqueo.",
+    "nota": "Puede relevarse a mano o en el sitio del ente regulador o el boletín oficial.",
+    "fecha_relevamiento": "2026-10-14"
+  }
+]

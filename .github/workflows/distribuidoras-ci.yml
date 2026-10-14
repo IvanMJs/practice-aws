@@ -1,0 +1,32 @@
+name: Distribuidoras — CI
+
+on:
+  pull_request:
+    paths: ["distribuidoras/**", ".github/workflows/distribuidoras-*.yml"]
+  push:
+    branches: [master]
+    paths: ["distribuidoras/**", ".github/workflows/distribuidoras-*.yml"]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: distribuidoras
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: distribuidoras/package-lock.json
+      - run: npm ci
+      - run: npm run validate
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build

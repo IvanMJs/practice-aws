@@ -1,0 +1,83 @@
+name: Distribuidoras — actualización semanal
+
+on:
+  schedule:
+    # Lunes 09:17 UTC (06:17 en Argentina).
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: distribuidoras-semanal
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: distribuidoras
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: distribuidoras/package-lock.json
+      - run: npm ci
+      - run: npm run validate
+      - run: npm test
+
+      - name: Consultar fuentes y guardar snapshot
+        run: npm run update
+        env:
+          ALERTAS_MD: ${{ runner.temp }}/alertas.md
+
+      - name: Validar el snapshot nuevo
+        run: npm run validate
+
+      - name: Guardar snapshot en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/snapshots
+          git diff --cached --quiet || git commit -m "datos: corrida semanal $(date -u +%F)"
+          git push
+
+      - name: Abrir alerta si alguna fuente dejó de responder
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -s "$RUNNER_TEMP/alertas.md" ]; then
+            gh issue create --title "Distribuidoras: fuentes caídas ($(date -u +%F))" --body-file "$RUNNER_TEMP/alertas.md"
+          fi
+
+      # El modelo de dotación se recalcula en el build con los datos actuales.
+      - name: Reconstruir el sitio
+        run: npm run build
+        env:
+          NEXT_BASE_PATH: ${{ vars.DISTRIBUIDORAS_BASE_PATH }}
+
+      - name: Subir el sitio para GitHub Pages
+        if: vars.DISTRIBUIDORAS_DEPLOY_PAGES == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: distribuidoras/out
+
+  publicar:
+    needs: actualizar
+    if: vars.DISTRIBUIDORAS_DEPLOY_PAGES == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
